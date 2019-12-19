@@ -1,0 +1,8 @@
+node_modules
+.granary/
+*.pp.ligo
+*.tz
+.idea
+.pytest_cache
+__pycache__
+.python-version
