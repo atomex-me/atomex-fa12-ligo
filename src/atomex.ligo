@@ -30,7 +30,6 @@ type parameter is
 | Refund of refundParam
 
 type swapState is record
-  hashedSecret: bytes;
   initiator: address;
   participant: address;
   refundTime: timestamp;
@@ -65,7 +64,6 @@ function doInitiate(const initiate: initiateParam; var s: storage) : (list(opera
     else skip;
 
     const swap: swapState = record
-      hashedSecret = initiate.hashedSecret;
       initiator = source;
       participant = initiate.participant;
       refundTime = initiate.refundTime;
