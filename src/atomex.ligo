@@ -1,9 +1,10 @@
-type tokenInterface is
-| Transfer of (address * address * nat)
-| Approve of (address * nat)
-| GetAllowance of (address * address * contract(nat))
-| GetBalance of (address * contract(nat))
-| GetTotalSupply of (unit * contract(nat))
+type transferParam is address * address * nat;
+// type tokenInterface is
+//  | Transfer of (address * address * nat)
+//  | Approve of (address * nat)
+//  | GetAllowance of (address * address * contract(nat))
+//  | GetBalance of (address * contract(nat))
+//  | GetTotalSupply of (unit * contract(nat))
 
 type initiateParam is record
   hashedSecret: bytes;
@@ -38,7 +39,7 @@ type swapState is record
   payoffAmount: nat;
 end
 
-type storage is big_map(bytes, swapState);
+type storage is big_map(bytes, swapState) * unit;
 
 
 function transfer(const tokenAddress: address; 
@@ -46,9 +47,11 @@ function transfer(const tokenAddress: address;
                   const dst: address; 
                   const value: nat) : operation is
   begin
-    const tokenContract: contract(tokenInterface) = get_contract(tokenAddress);
-    const tx: tokenInterface = Transfer(src, dst, value);
-    const op: operation = transaction(tx, 0tz, tokenContract);
+    const transferEntry: contract(transferParam) = get_entrypoint("%transfer", tokenAddress);
+    //const tokenContract: contract(tokenInterface) = get_contract(tokenAddress);
+    const params: transferParam = (src, dst, value);
+    //const params: tokenInterface = Transfer(src, dst, value);
+    const op: operation = transaction(params, 0tz, transferEntry);
   end with op
 
 
@@ -71,8 +74,8 @@ function doInitiate(const initiate: initiateParam; var s: storage) : (list(opera
       payoffAmount = initiate.payoffAmount;
     end;
 
-    case s[initiate.hashedSecret] of 
-      | None -> s[initiate.hashedSecret] := swap
+    case s.0[initiate.hashedSecret] of 
+      | None -> s.0[initiate.hashedSecret] := swap
       | Some(x) -> failwith("")
     end;
     
@@ -91,13 +94,13 @@ function thirdPartyRedeem(const tokenAddress: address; const payoffAmount: nat) 
 
 function doRedeem(const redeem: redeemParam; var s: storage) : (list(operation) * storage) is 
   begin
-    const swap: swapState = get_force(redeem.hashedSecret, s);
+    const swap: swapState = get_force(redeem.hashedSecret, s.0);
     if (now >= swap.refundTime) then failwith("");
     else skip;
     if (sha_256(sha_256(redeem.secret)) =/= redeem.hashedSecret) then failwith("");
     else skip;
 
-    remove redeem.hashedSecret from map s;
+    remove redeem.hashedSecret from map s.0;
 
     const txAmount: nat = abs(swap.redeemAmount - swap.payoffAmount);  // should be non-negative (checked duting initiate)
     const redeemTx: operation = transfer(swap.tokenAddress, self_address, swap.participant, txAmount);
@@ -107,11 +110,11 @@ function doRedeem(const redeem: redeemParam; var s: storage) : (list(operation) 
 
 function doRefund(const refund: refundParam; var s: storage) : (list(operation) * storage) is 
   begin
-    const swap: swapState = get_force(refund.hashedSecret, s);
+    const swap: swapState = get_force(refund.hashedSecret, s.0);
     if (now < swap.refundTime) then failwith("");
     else skip;
     
-    remove refund.hashedSecret from map s;
+    remove refund.hashedSecret from map s.0;
 
     const refundTx: operation = transfer(swap.tokenAddress, self_address, swap.initiator, swap.redeemAmount);
   end with (list[refundTx], s) 
