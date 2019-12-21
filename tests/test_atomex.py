@@ -1,9 +1,7 @@
 from os.path import dirname, join
 from unittest import TestCase
-from decimal import Decimal
 
-from pytezos import ContractInterface, pytezos, format_timestamp, MichelsonRuntimeError, TezArithmeticError
-from pytezos.michelson.interface import ContractCall
+from pytezos import ContractInterface, pytezos, format_timestamp, MichelsonRuntimeError
 
 fa_address = 'KT1MvySWj4nzL8mdsVGzpxrmUxZeWTvLRxBf'
 source = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
@@ -23,6 +21,10 @@ class AtomexContractTest(TestCase):
         cls.fa12 = pytezos.contract(fa_address)
         cls.maxDiff = None
 
+    def assertTransfer(self, src, dst, amount, parameters):
+        params = self.fa12.contract.parameter.decode(parameters)
+        self.assertEqual([src, dst, amount], params['transfer'])
+
     def test_no_tez(self):
         now = pytezos.now()
         with self.assertRaises(MichelsonRuntimeError):
@@ -31,7 +33,7 @@ class AtomexContractTest(TestCase):
                           participant=party,
                           refundTime=now + 6 * 3600,
                           tokenAddress=fa_address,
-                          redeemAmount=1000,
+                          totalAmount=1000,
                           payoffAmount=0) \
                 .with_amount(1000) \
                 .result(storage=empty_storage,
@@ -44,7 +46,7 @@ class AtomexContractTest(TestCase):
                       participant=party,
                       refundTime=now + 6 * 3600,
                       tokenAddress=fa_address,
-                      redeemAmount=1000,
+                      totalAmount=1000,
                       payoffAmount=10) \
             .result(storage=empty_storage,
                     source=source)
@@ -54,7 +56,7 @@ class AtomexContractTest(TestCase):
                 'initiator': source,
                 'participant': party,
                 'payoffAmount': 10,
-                'redeemAmount': 1000,
+                'totalAmount': 1000,
                 'refundTime': format_timestamp(now + 6 * 3600),
                 'tokenAddress': fa_address
             }
@@ -62,36 +64,42 @@ class AtomexContractTest(TestCase):
         self.assertDictEqual(big_map_diff, res.big_map_diff)
         self.assertEqual(empty_storage, res.storage)
         self.assertEqual(1, len(res.operations))
+        self.assertTransfer(src=source,
+                            dst=res.operations[0]['source'],
+                            amount=1000,
+                            parameters=res.operations[0]['parameters'])
 
-        params = self.fa12.contract.parameter.decode(res.operations[0]['parameters'])
-        self.assertEqual([source, res.operations[0]['source'], 1010], params['transfer'])
+    def test_initiate_proxy(self):
+        now = pytezos.now()
+        res = self.atomex \
+            .initiate(hashedSecret=hashed_secret,
+                      participant=party,
+                      refundTime=now + 6 * 3600,
+                      tokenAddress=fa_address,
+                      totalAmount=1000,
+                      payoffAmount=10) \
+            .result(storage=empty_storage,
+                    sender=proxy,
+                    source=source)
 
-    # def test_initiate_proxy(self):
-    #     now = pytezos.now()
-    #
-    #     res = self.atomex \
-    #         .initiate(participant=party,
-    #                   hashed_secret=hashed_secret,
-    #                   refund_time=now + 6 * 3600,
-    #                   payoff=Decimal('0.02')) \
-    #         .with_amount(Decimal('1')) \
-    #         .result(storage=empty_storage,
-    #                 sender=proxy,
-    #                 source=source)
-    #
-    #     big_map_diff = {
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now + 6 * 3600),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }
-    #     self.assertDictEqual(big_map_diff, res.big_map_diff)
-    #     self.assertEqual(empty_storage, res.storage)
-    #     self.assertEqual([], res.operations)
-    #
+        big_map_diff = {
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'payoffAmount': 10,
+                'totalAmount': 1000,
+                'refundTime': format_timestamp(now + 6 * 3600),
+                'tokenAddress': fa_address
+            }
+        }
+        self.assertDictEqual(big_map_diff, res.big_map_diff)
+        self.assertEqual(empty_storage, res.storage)
+        self.assertEqual(1, len(res.operations))
+        self.assertTransfer(src=source,
+                            dst=res.operations[0]['source'],
+                            amount=1000,
+                            parameters=res.operations[0]['parameters'])
+
     def test_initiate_same_secret(self):
         now = pytezos.now()
         initial_storage = [{
@@ -100,7 +108,7 @@ class AtomexContractTest(TestCase):
                 'participant': party,
                 'refundTime': format_timestamp(now + 6 * 3600),
                 'tokenAddress': fa_address,
-                'redeemAmount': 1000,
+                'totalAmount': 1000,
                 'payoffAmount': 0
             }
         }, None]
@@ -111,9 +119,23 @@ class AtomexContractTest(TestCase):
                           participant=party,
                           refundTime=now + 6 * 3600,
                           tokenAddress=fa_address,
-                          redeemAmount=1000,
+                          totalAmount=1000,
                           payoffAmount=0) \
                 .result(storage=initial_storage,
+                        source=source)
+
+    def test_initiate_payoff_overflow(self):
+        now = pytezos.now()
+
+        with self.assertRaises(MichelsonRuntimeError):
+            self.atomex \
+                .initiate(hashedSecret=hashed_secret,
+                          participant=party,
+                          refundTime=now + 6 * 3600,
+                          tokenAddress=fa_address,
+                          totalAmount=100,
+                          payoffAmount=101) \
+                .result(storage=empty_storage,
                         source=source)
 
     def test_initiate_in_the_past(self):
@@ -124,7 +146,7 @@ class AtomexContractTest(TestCase):
                           participant=party,
                           refundTime=now - 6 * 3600,
                           tokenAddress=fa_address,
-                          redeemAmount=1000,
+                          totalAmount=1000,
                           payoffAmount=0) \
                 .result(storage=empty_storage,
                         source=source)
@@ -137,173 +159,181 @@ class AtomexContractTest(TestCase):
                           participant=party,
                           refundTime=now + 6 * 3600,
                           tokenAddress=fa_address,
-                          redeemAmount=1000,
+                          totalAmount=1000,
                           payoffAmount=0) \
                 .result(storage=empty_storage,
                         source=party)
 
-    # def test_redeem_by_third_party(self):
-    #     now = pytezos.now()
-    #     initial_storage = [{
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now + 60),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }, None]
-    #
-    #     res = self.atomex \
-    #         .redeem(secret) \
-    #         .result(storage=initial_storage, source=source)
-    #
-    #     self.assertDictEqual({hashed_secret: None}, res.big_map_diff)
-    #     self.assertEqual(2, len(res.operations))
-    #
-    #     redeem_tx = res.operations[0]
-    #     self.assertEqual(party, redeem_tx['destination'])
-    #     self.assertEqual('980000', redeem_tx['amount'])
-    #
-    #     payoff_tx = res.operations[1]
-    #     self.assertEqual(source, payoff_tx['destination'])
-    #     self.assertEqual('20000', payoff_tx['amount'])
-    #
-    # def test_redeem_after_expiration(self):
-    #     now = pytezos.now()
-    #     initial_storage = [{
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now - 60),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }, None]
-    #
-    #     with self.assertRaises(MichelsonRuntimeError):
-    #         self.atomex \
-    #             .redeem(secret) \
-    #             .result(storage=initial_storage, source=party)
-    #
-    # def test_redeem_invalid_secret(self):
-    #     now = pytezos.now()
-    #     initial_storage = [{
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now + 60),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }, None]
-    #
-    #     with self.assertRaises(MichelsonRuntimeError):
-    #         self.atomex \
-    #             .redeem('a' * 32) \
-    #             .result(storage=initial_storage, source=source)
-    #
-    # def test_redeem_with_money(self):
-    #     now = pytezos.now()
-    #     initial_storage = [{
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now + 60),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }, None]
-    #
-    #     with self.assertRaises(MichelsonRuntimeError):
-    #         self.atomex \
-    #             .redeem(secret) \
-    #             .with_amount(Decimal('1')) \
-    #             .result(storage=initial_storage, source=source)
-    #
-    # def test_refund(self):
-    #     now = pytezos.now()
-    #     initial_storage = [{
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now - 60),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }, None]
-    #
-    #     res = self.atomex \
-    #         .refund(hashed_secret) \
-    #         .result(storage=initial_storage, source=source)
-    #
-    #     self.assertDictEqual({hashed_secret: None}, res.big_map_diff)
-    #     self.assertEqual(1, len(res.operations))
-    #
-    #     refund_tx = res.operations[0]
-    #     self.assertEqual(source, refund_tx['destination'])
-    #     self.assertEqual('1000000', refund_tx['amount'])
-    #
-    # def test_refund_before_expiration(self):
-    #     now = pytezos.now()
-    #     initial_storage = [{
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now + 60),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }, None]
-    #
-    #     with self.assertRaises(MichelsonRuntimeError):
-    #         self.atomex \
-    #             .refund(hashed_secret) \
-    #             .result(storage=initial_storage, source=source)
-    #
-    # def test_refund_non_existent(self):
-    #     with self.assertRaises(MichelsonRuntimeError):
-    #         self.atomex \
-    #             .refund(hashed_secret) \
-    #             .result(storage=empty_storage, source=source)
-    #
-    # def test_refund_with_money(self):
-    #     now = pytezos.now()
-    #     initial_storage = [{
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now - 60),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }, None]
-    #
-    #     with self.assertRaises(MichelsonRuntimeError):
-    #         self.atomex \
-    #             .refund(hashed_secret) \
-    #             .with_amount(Decimal('1')) \
-    #             .result(storage=initial_storage, source=source)
-    #
-    # def test_refund_by_third_party(self):
-    #     now = pytezos.now()
-    #     initial_storage = [{
-    #         hashed_secret: {
-    #             'initiator': source,
-    #             'participant': party,
-    #             'amount': Decimal('0.98'),
-    #             'refund_time': format_timestamp(now - 60),
-    #             'payoff': Decimal('0.02')
-    #         }
-    #     }, None]
-    #
-    #     res = self.atomex \
-    #         .refund(hashed_secret) \
-    #         .result(storage=initial_storage, source=party)
-    #
-    #     self.assertDictEqual({hashed_secret: None}, res.big_map_diff)
-    #     self.assertEqual(1, len(res.operations))
-    #
-    #     refund_tx = res.operations[0]
-    #     self.assertEqual(source, refund_tx['destination'])
-    #     self.assertEqual('1000000', refund_tx['amount'])
+    def test_redeem_by_third_party(self):
+        now = pytezos.now()
+        initial_storage = [{
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'refundTime': format_timestamp(now + 6 * 3600),
+                'tokenAddress': fa_address,
+                'totalAmount': 1000,
+                'payoffAmount': 10
+            }
+        }, None]
+
+        res = self.atomex \
+            .redeem(secret) \
+            .result(storage=initial_storage, source=source)
+
+        self.assertDictEqual({hashed_secret: None}, res.big_map_diff)
+        self.assertEqual(2, len(res.operations))
+        self.assertTransfer(src=res.operations[0]['source'],
+                            dst=party,
+                            amount=990,
+                            parameters=res.operations[0]['parameters'])
+        self.assertTransfer(src=res.operations[0]['source'],
+                            dst=source,
+                            amount=10,
+                            parameters=res.operations[1]['parameters'])
+
+    def test_redeem_after_expiration(self):
+        now = pytezos.now()
+        initial_storage = [{
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'refundTime': format_timestamp(now - 60),
+                'tokenAddress': fa_address,
+                'totalAmount': 1000,
+                'payoffAmount': 10
+            }
+        }, None]
+
+        with self.assertRaises(MichelsonRuntimeError):
+            self.atomex \
+                .redeem(secret) \
+                .result(storage=initial_storage, source=party)
+
+    def test_redeem_invalid_secret(self):
+        now = pytezos.now()
+        initial_storage = [{
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'refundTime': format_timestamp(now - 60),
+                'tokenAddress': fa_address,
+                'totalAmount': 1000,
+                'payoffAmount': 10
+            }
+        }, None]
+
+        with self.assertRaises(MichelsonRuntimeError):
+            self.atomex \
+                .redeem('a' * 32) \
+                .result(storage=initial_storage, source=source)
+
+    def test_redeem_with_money(self):
+        now = pytezos.now()
+        initial_storage = [{
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'refundTime': format_timestamp(now - 60),
+                'tokenAddress': fa_address,
+                'totalAmount': 1000,
+                'payoffAmount': 10
+            }
+        }, None]
+
+        with self.assertRaises(MichelsonRuntimeError):
+            self.atomex \
+                .redeem(secret) \
+                .with_amount(100000) \
+                .result(storage=initial_storage, source=source)
+
+    def test_refund(self):
+        now = pytezos.now()
+        initial_storage = [{
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'refundTime': format_timestamp(now - 60),
+                'tokenAddress': fa_address,
+                'totalAmount': 1000,
+                'payoffAmount': 10
+            }
+        }, None]
+
+        res = self.atomex \
+            .refund(hashed_secret) \
+            .result(storage=initial_storage, source=source)
+
+        self.assertDictEqual({hashed_secret: None}, res.big_map_diff)
+        self.assertEqual(1, len(res.operations))
+        self.assertTransfer(src=res.operations[0]['source'],
+                            dst=source,
+                            amount=1000,
+                            parameters=res.operations[0]['parameters'])
+
+    def test_third_party_refund(self):
+        now = pytezos.now()
+        initial_storage = [{
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'refundTime': format_timestamp(now - 60),
+                'tokenAddress': fa_address,
+                'totalAmount': 1000,
+                'payoffAmount': 10
+            }
+        }, None]
+
+        res = self.atomex \
+            .refund(hashed_secret) \
+            .result(storage=initial_storage, source=party)
+
+        self.assertDictEqual({hashed_secret: None}, res.big_map_diff)
+        self.assertEqual(1, len(res.operations))
+        self.assertTransfer(src=res.operations[0]['source'],
+                            dst=source,
+                            amount=1000,
+                            parameters=res.operations[0]['parameters'])
+
+    def test_refund_before_expiration(self):
+        now = pytezos.now()
+        initial_storage = [{
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'refundTime': format_timestamp(now + 60),
+                'tokenAddress': fa_address,
+                'totalAmount': 1000,
+                'payoffAmount': 10
+            }
+        }, None]
+
+        with self.assertRaises(MichelsonRuntimeError):
+            self.atomex \
+                .refund(hashed_secret) \
+                .result(storage=initial_storage, source=source)
+
+    def test_refund_non_existent(self):
+        with self.assertRaises(MichelsonRuntimeError):
+            self.atomex \
+                .refund(hashed_secret) \
+                .result(storage=empty_storage, source=source)
+
+    def test_refund_with_money(self):
+        now = pytezos.now()
+        initial_storage = [{
+            hashed_secret: {
+                'initiator': source,
+                'participant': party,
+                'refundTime': format_timestamp(now + 60),
+                'tokenAddress': fa_address,
+                'totalAmount': 1000,
+                'payoffAmount': 10
+            }
+        }, None]
+
+        with self.assertRaises(MichelsonRuntimeError):
+            self.atomex \
+                .refund(hashed_secret) \
+                .with_amount(100000) \
+                .result(storage=initial_storage, source=source)

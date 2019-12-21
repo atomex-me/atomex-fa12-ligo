@@ -5,30 +5,21 @@ type initiateParam is record
   participant: address;
   refundTime: timestamp;
   tokenAddress: address;
-  redeemAmount: nat;
+  totalAmount: nat;
   payoffAmount: nat;
-end
-
-type redeemParam is record
-  hashedSecret: bytes;
-  secret: bytes;
-end
-
-type refundParam is record
-  hashedSecret: bytes;
 end
 
 type parameter is 
 | Initiate of initiateParam
-| Redeem of redeemParam
-| Refund of refundParam
+| Redeem of bytes
+| Refund of bytes
 
 type swapState is record
   initiator: address;
   participant: address;
   refundTime: timestamp;
   tokenAddress: address;
-  redeemAmount: nat;
+  totalAmount: nat;
   payoffAmount: nat;
 end
 
@@ -48,7 +39,7 @@ function transfer(const tokenAddress: address;
 
 function doInitiate(const initiate: initiateParam; var s: storage) : (list(operation) * storage) is 
   begin
-    if (initiate.payoffAmount >= initiate.redeemAmount) then failwith("");
+    if (initiate.payoffAmount > initiate.totalAmount) then failwith("");
     else skip;
     if (initiate.refundTime <= now) then failwith("");
     else skip;
@@ -62,7 +53,7 @@ function doInitiate(const initiate: initiateParam; var s: storage) : (list(opera
       participant = initiate.participant;
       refundTime = initiate.refundTime;
       tokenAddress = initiate.tokenAddress;
-      redeemAmount = initiate.redeemAmount;
+      totalAmount = initiate.totalAmount;
       payoffAmount = initiate.payoffAmount;
     end;
 
@@ -72,7 +63,7 @@ function doInitiate(const initiate: initiateParam; var s: storage) : (list(opera
     end;
     
     const depositTx: operation = transfer(
-        initiate.tokenAddress, source, self_address, initiate.redeemAmount + initiate.payoffAmount);
+        initiate.tokenAddress, source, self_address, initiate.totalAmount);
   end with (list[depositTx], s)
 
 
@@ -85,30 +76,30 @@ function thirdPartyRedeem(const tokenAddress: address; const payoffAmount: nat) 
   end
 
 
-function doRedeem(const redeem: redeemParam; var s: storage) : (list(operation) * storage) is 
+function doRedeem(const secret: bytes; var s: storage) : (list(operation) * storage) is
   begin
-    const swap: swapState = get_force(redeem.hashedSecret, s.0);
+    const hashedSecret: bytes = sha_256(sha_256(secret));
+    const swap: swapState = get_force(hashedSecret, s.0);
     if (now >= swap.refundTime) then failwith("");
     else skip;
-    if (sha_256(sha_256(redeem.secret)) =/= redeem.hashedSecret) then failwith("");
-    else skip;
 
-    remove redeem.hashedSecret from map s.0;
+    remove hashedSecret from map s.0;
 
-    const redeemTx: operation = transfer(swap.tokenAddress, self_address, swap.participant, swap.redeemAmount);
+    const redeemAmount: nat = abs(swap.totalAmount - swap.payoffAmount);  // we ensure that on init
+    const redeemTx: operation = transfer(swap.tokenAddress, self_address, swap.participant, redeemAmount);
     const opList: list(operation) = thirdPartyRedeem(swap.tokenAddress, swap.payoffAmount);
   end with (redeemTx # opList, s) 
 
-function doRefund(const refund: refundParam; var s: storage) : (list(operation) * storage) is 
+function doRefund(const hashedSecret: bytes; var s: storage) : (list(operation) * storage) is
   begin
-    const swap: swapState = get_force(refund.hashedSecret, s.0);
+    const swap: swapState = get_force(hashedSecret, s.0);
     if (now < swap.refundTime) then failwith("");
     else skip;
     
-    remove refund.hashedSecret from map s.0;
+    remove hashedSecret from map s.0;
 
     const refundTx: operation = transfer(
-        swap.tokenAddress, self_address, swap.initiator, swap.redeemAmount + swap.payoffAmount);
+        swap.tokenAddress, self_address, swap.initiator, swap.totalAmount);
   end with (list[refundTx], s) 
 
 function main (const p: parameter; var s: storage) : (list(operation) * storage) is
