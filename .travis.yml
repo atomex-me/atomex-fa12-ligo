@@ -3,12 +3,27 @@ language: python
 python:
   - "3.6"
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - libsodium-dev
+
 cache:
   pip: true
+  directories:
+    - docker-cache
+
+before_install:
+  - |
+    filename=docker-cache/saved_images.tar
+    if [[ -f "$filename" ]]; then docker load < "$filename"; fi
+    mkdir -p docker-cache
+    docker pull ligolang/ligo:next
+    docker save -o "$filename" ligolang/ligo:next
 
 install:
-  - sudo apt-get update -q
-  - sudo apt-get install libsodium-dev -y
   - pip install pytest pytezos[crypto]
 
 stages:
