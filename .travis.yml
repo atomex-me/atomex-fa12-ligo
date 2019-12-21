@@ -35,4 +35,4 @@ deploy:
   script: pytezos deploy src/atomex.tz --github-repo-slug="$TRAVIS_REPO_SLUG" --github-oauth-token="$GH_TOKEN"
   on:
     branch: master
-    condition: tag IS present
+    tags: true
