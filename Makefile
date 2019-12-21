@@ -5,4 +5,4 @@ test:
 	pytest . -v
 
 install:
-    pytezos deploy src/atomex.tz --dry_run
+	pytezos deploy src/atomex.tz --dry_run
