@@ -15,7 +15,10 @@ cache:
   directories:
     - docker-cache
 
-before_install:
+install:
+  - pip install pytest pytezos[crypto]
+
+before_script:
   - |
     filename=docker-cache/saved_images.tar
     if [[ -f "$filename" ]]; then docker load < "$filename"; fi
@@ -23,20 +26,13 @@ before_install:
     docker pull ligolang/ligo:next
     docker save -o "$filename" ligolang/ligo:next
 
-install:
-  - pip install pytest pytezos[crypto]
+script:
+  - make
+  - make test
 
-stages:
-  - build
-  - test
-  - name: deploy
-    if: (branch = master) AND (tag IS present)
-
-jobs:
-  include:
-    - stage: build
-      script: make
-    - stage: test
-      script: pytest . -v
-    - stage: deploy
-      script: pytezos deploy src/atomex.tz --github-repo-slug="$TRAVIS_REPO_SLUG" --github-oauth-token="$GH_TOKEN"
+deploy:
+  provider: script
+  script: pytezos deploy src/atomex.tz --github-repo-slug="$TRAVIS_REPO_SLUG" --github-oauth-token="$GH_TOKEN"
+  on:
+    branch: master
+    condition: tag IS present
