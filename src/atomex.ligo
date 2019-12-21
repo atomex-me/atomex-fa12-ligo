@@ -25,7 +25,6 @@ end
 
 type storage is big_map(bytes, swapState) * unit;
 
-
 function transfer(const tokenAddress: address; 
                   const src: address;
                   const dst: address; 
@@ -35,7 +34,6 @@ function transfer(const tokenAddress: address;
     const params: transferParam = (src, dst, value);
     const op: operation = transaction(params, 0tz, transferEntry);
   end with op
-
 
 function doInitiate(const initiate: initiateParam; var s: storage) : (list(operation) * storage) is 
   begin
@@ -66,7 +64,6 @@ function doInitiate(const initiate: initiateParam; var s: storage) : (list(opera
         initiate.tokenAddress, source, self_address, initiate.totalAmount);
   end with (list[depositTx], s)
 
-
 function thirdPartyRedeem(const tokenAddress: address; const payoffAmount: nat) : list(operation) is
   block {
     const hasPayoff: bool = payoffAmount > 0n;
@@ -74,7 +71,6 @@ function thirdPartyRedeem(const tokenAddress: address; const payoffAmount: nat) 
     | True -> list[transfer(tokenAddress, self_address, source, payoffAmount)]
     | False -> (nil : list(operation))
   end
-
 
 function doRedeem(const secret: bytes; var s: storage) : (list(operation) * storage) is
   begin

@@ -1,0 +1,27 @@
+language: python
+
+python:
+  - "3.6"
+
+cache:
+  pip: true
+
+install:
+  - sudo apt-get update -q
+  - sudo apt-get install libsodium-dev -y
+  - pip install pytest pytezos[crypto]
+
+stages:
+  - build
+  - test
+  - name: deploy
+    if: (branch = master) AND (tag IS present)
+
+jobs:
+  include:
+    - stage: build
+      script: make
+    - stage: test
+      script: pytest . -v
+    - stage: deploy
+      script: pytezos deploy src/atomex.tz --github-repo-slug="$TRAVIS_REPO_SLUG" --github-oauth-token="$GH_TOKEN"
