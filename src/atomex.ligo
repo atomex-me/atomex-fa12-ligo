@@ -74,6 +74,8 @@ function thirdPartyRedeem(const tokenAddress: address; const payoffAmount: nat) 
 
 function doRedeem(const secret: bytes; var s: storage) : (list(operation) * storage) is
   begin
+    if (32n =/= size(secret)) then failwith("");
+    else skip;
     const hashedSecret: bytes = sha_256(sha_256(secret));
     const swap: swapState = get_force(hashedSecret, s.0);
     if (now >= swap.refundTime) then failwith("");
