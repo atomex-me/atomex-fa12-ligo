@@ -1,6 +1,6 @@
 # Atomex.tz
 [![Build Status](https://travis-ci.org/atomex-me/atomex-fa12-ligo.svg?branch=master)](https://travis-ci.org/atomex-me/atomex-fa12-ligo)
-[![tezos mainnet](https://img.shields.io/badge/tezos-mainnet-blue.svg)](https://better-call.dev/main/KT1VG2WtYdSWz5E7chTeAdDPZNy2MpP8pTfL)
+[![tezos babylonnet](https://img.shields.io/badge/tezos-babylonnet-blue.svg)](https://better-call.dev/babylon/KT1E7aGA8Fjord9ZoyVN34mFXYRZegv1Dg71)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Atomex protocol implementation for the Tezos Approvable Ledger (see [FA1.2 standard](https://gitlab.com/tzip/tzip/blob/master/Proposals/TZIP-0007/FA1.2.md))
@@ -17,8 +17,7 @@ Atomex protocol implementation for the Tezos Approvable Ledger (see [FA1.2 stand
 * Trading APIs for wallets/traders
 
 ## Deployed contracts
-* Tezos mainnet: [KT1VG2WtYdSWz5E7chTeAdDPZNy2MpP8pTfL](https://better-call.dev/main/KT1VG2WtYdSWz5E7chTeAdDPZNy2MpP8pTfL)
-* Tezos babylonnet: [KT1Fc7XHbZhpd8wkYvzSJnAj37GxNyqSsHhZ](https://better-call.dev/babylon/KT1Fc7XHbZhpd8wkYvzSJnAj37GxNyqSsHhZ)
+* Tezos babylonnet: [KT1E7aGA8Fjord9ZoyVN34mFXYRZegv1Dg71](https://better-call.dev/babylon/KT1E7aGA8Fjord9ZoyVN34mFXYRZegv1Dg71)
 
 ## Resources
 Latest version of desktop client is available at [atomex.me](https://atomex.me)
