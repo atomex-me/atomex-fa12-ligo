@@ -1,7 +1,7 @@
 node_modules
 .granary/
 *.pp.ligo
-*.tz
+atomex.tz
 .idea
 .pytest_cache
 __pycache__

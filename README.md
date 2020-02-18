@@ -23,7 +23,7 @@ Atomex protocol implementation for the Tezos Approvable Ledger (see [FA1.2 stand
 Latest version of desktop client is available at [atomex.me](https://atomex.me)
 
 ### Publications
-* [Atomex: cross-chain atomic swaps on practice](https://medium.com/coinmonks/atomex-cross-chain-atomic-swaps-on-practice-8139571f0ee5)
+* [Atomex: cross-chain atomic swaps on practice](https://medium.com/coinmonks/atomex-cross-chain-atomic-swaps-on-practice-813/chains/main/blocks/head/helpers/scripts/run_operation9571f0ee5)
 * [Atomic tips: interactive workshop](https://medium.com/coinmonks/atomic-tips-berlin-workshop-materials-c5c8ee3f46aa)
 
 ### Contacts
