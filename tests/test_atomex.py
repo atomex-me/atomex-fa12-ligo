@@ -9,7 +9,7 @@ party = 'tz1h3rQ8wBxFd8L9B3d7Jhaawu6Z568XU3xY'
 proxy = 'tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm'
 secret = 'dca15ce0c01f61ab03139b4673f4bd902203dc3b898a89a5d35bad794e5cfd4f'
 hashed_secret = '05bce5c12071fbca95b13d49cb5ef45323e0216d618bb4575c519b74be75e3da'
-empty_storage = [{}, None]
+empty_storage = {'0': {}, '1': None}
 project_dir = dirname(dirname(__file__))
 
 
@@ -102,7 +102,7 @@ class AtomexContractTest(TestCase):
 
     def test_initiate_same_secret(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -111,7 +111,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 0
             }
-        }, None]
+        }, '1': None}
 
         with self.assertRaises(MichelsonRuntimeError):
             self.atomex \
@@ -166,7 +166,7 @@ class AtomexContractTest(TestCase):
 
     def test_redeem_by_third_party(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -175,7 +175,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 10
             }
-        }, None]
+        }, '1': None}
 
         res = self.atomex \
             .redeem(secret) \
@@ -194,7 +194,7 @@ class AtomexContractTest(TestCase):
 
     def test_redeem_after_expiration(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -203,7 +203,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 10
             }
-        }, None]
+        }, '1': None}
 
         with self.assertRaises(MichelsonRuntimeError):
             self.atomex \
@@ -212,7 +212,7 @@ class AtomexContractTest(TestCase):
 
     def test_redeem_invalid_secret(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -221,7 +221,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 10
             }
-        }, None]
+        }, '1': None}
 
         with self.assertRaises(MichelsonRuntimeError):
             self.atomex \
@@ -230,7 +230,7 @@ class AtomexContractTest(TestCase):
 
     def test_redeem_with_money(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -239,7 +239,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 10
             }
-        }, None]
+        }, '1': None}
 
         with self.assertRaises(MichelsonRuntimeError):
             self.atomex \
@@ -249,7 +249,7 @@ class AtomexContractTest(TestCase):
 
     def test_refund(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -258,7 +258,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 10
             }
-        }, None]
+        }, '1': None}
 
         res = self.atomex \
             .refund(hashed_secret) \
@@ -273,7 +273,7 @@ class AtomexContractTest(TestCase):
 
     def test_third_party_refund(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -282,7 +282,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 10
             }
-        }, None]
+        }, '1': None}
 
         res = self.atomex \
             .refund(hashed_secret) \
@@ -297,7 +297,7 @@ class AtomexContractTest(TestCase):
 
     def test_refund_before_expiration(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -306,7 +306,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 10
             }
-        }, None]
+        }, '1': None}
 
         with self.assertRaises(MichelsonRuntimeError):
             self.atomex \
@@ -321,7 +321,7 @@ class AtomexContractTest(TestCase):
 
     def test_refund_with_money(self):
         now = pytezos.now()
-        initial_storage = [{
+        initial_storage = {'0': {
             hashed_secret: {
                 'initiator': source,
                 'participant': party,
@@ -330,7 +330,7 @@ class AtomexContractTest(TestCase):
                 'totalAmount': 1000,
                 'payoffAmount': 10
             }
-        }, None]
+        }, '1': None}
 
         with self.assertRaises(MichelsonRuntimeError):
             self.atomex \
