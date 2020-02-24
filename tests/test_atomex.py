@@ -3,8 +3,8 @@ from unittest import TestCase
 
 from pytezos import ContractInterface, pytezos, format_timestamp, MichelsonRuntimeError
 
-fa_address = 'KT1MvySWj4nzL8mdsVGzpxrmUxZeWTvLRxBf'
-source = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
+fa_address = 'KT1Q3XGrpbqhF6ny4qLhuiKekmk86hiAnmhh'
+source = 'tz1cShoBMAfpWX35DUcQRsXbqAgWAB4tz7kj'
 party = 'tz1h3rQ8wBxFd8L9B3d7Jhaawu6Z568XU3xY'
 proxy = 'tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm'
 secret = 'dca15ce0c01f61ab03139b4673f4bd902203dc3b898a89a5d35bad794e5cfd4f'
@@ -23,7 +23,7 @@ class AtomexContractTest(TestCase):
 
     def assertTransfer(self, src, dst, amount, parameters):
         params = self.fa12.contract.parameter.decode(parameters)
-        self.assertEqual([src, dst, amount], params['transfer'])
+        self.assertEqual({'from': src, 'to': dst, 'value': amount}, params['transfer'])
 
     def test_no_tez(self):
         now = pytezos.now()

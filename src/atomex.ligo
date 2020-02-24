@@ -1,4 +1,4 @@
-type transferParam is address * address * nat;
+type transferParam is address * (address * nat);
 
 type initiateParam is record
   hashedSecret: bytes;
@@ -31,7 +31,7 @@ function transfer(const tokenAddress: address;
                   const value: nat) : operation is
   begin
     const transferEntry: contract(transferParam) = get_entrypoint("%transfer", tokenAddress);
-    const params: transferParam = (src, dst, value);
+    const params: transferParam = (src, (dst, value));
     const op: operation = transaction(params, 0tz, transferEntry);
   end with op
 
