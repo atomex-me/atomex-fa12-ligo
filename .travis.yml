@@ -16,7 +16,7 @@ cache:
     - docker-cache
 
 install:
-  - pip install pytest pytezos[crypto]
+  - pip install pytest pytezos
 
 before_script:
   - |
