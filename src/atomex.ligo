@@ -40,7 +40,7 @@ function getSwapState(const hashedSecret: bytes; const s: storage) : swapState i
 function getTransferEntry(const tokenAddress: address) : contract(transferParam) is
   case (Tezos.get_contract_opt(tokenAddress) : option(contract(transferParam))) of
     | Some(entry) -> entry
-    | None -> (failwith("token address doesn't exist or has unsupported type") : contract(transferParam))
+    | None -> (failwith("expected transfer entrypoint") : contract(transferParam))
   end; attributes ["inline"];
 
 function transfer(const transferEntry: contract(transferParam); 
@@ -62,11 +62,11 @@ function thirdPartyRedeem(const transferEntry: contract(transferParam); const pa
 
 function doInitiate(const initiate: initiateParam; var s: storage) : (list(operation) * storage) is 
   block {
-    if (initiate.payoffAmount > initiate.totalAmount) then failwith("payoff exceeds the amount"); else skip;
-    if (initiate.refundTime <= now) then failwith("refundTime has already come"); else skip;
+    if (initiate.payoffAmount > initiate.totalAmount) then failwith("payoff amount exceeds the total"); else skip;
+    if (initiate.refundTime <= now) then failwith("refund time has already come"); else skip;
     if (32n =/= Bytes.length(initiate.hashedSecret)) then failwith("hash size doesn't equal 32 bytes"); else skip;
-    if (Tezos.source = initiate.participant or Tezos.sender = initiate.participant) 
-      then failwith("SENDER or SOURCE cannot act as a participant"); else skip;
+    if (Tezos.source = initiate.participant) then failwith("SOURCE cannot act as participant"); else skip;
+    if (Tezos.sender = initiate.participant) then failwith("SENDER cannot act as participant"); else skip;
 
     const state: swapState = 
       record [
@@ -90,7 +90,7 @@ function doInitiate(const initiate: initiateParam; var s: storage) : (list(opera
 function doAdd(const add: addParam; var s: storage) : (list(operation) * storage) is 
   block {
     const swap: swapState = getSwapState(add.hashedSecret, s);
-    if (now >= swap.refundTime) then failwith("refundTime has already come"); else skip;
+    if (now >= swap.refundTime) then failwith("refund time has already come"); else skip;
 
     s[add.hashedSecret] := swap with record [ totalAmount = swap.totalAmount + add.addAmount ];
    
@@ -103,7 +103,7 @@ function doRedeem(const secret: bytes; var s: storage) : (list(operation) * stor
     if (32n =/= Bytes.length(secret)) then failwith("secret size doesn't equal 32 bytes"); else skip;
     const hashedSecret: bytes = Crypto.sha256(Crypto.sha256(secret));
     const swap: swapState = getSwapState(hashedSecret, s);
-    if (now >= swap.refundTime) then failwith("refundTime has already come"); else skip;
+    if (now >= swap.refundTime) then failwith("refund time has already come"); else skip;
 
     remove hashedSecret from map s;
 
@@ -116,7 +116,7 @@ function doRedeem(const secret: bytes; var s: storage) : (list(operation) * stor
 function doRefund(const hashedSecret: bytes; var s: storage) : (list(operation) * storage) is
   block {
     const swap: swapState = getSwapState(hashedSecret, s);
-    if (now < swap.refundTime) then failwith("refundTime hasn't come"); else skip;
+    if (now < swap.refundTime) then failwith("refund time hasn't come"); else skip;
 
     remove hashedSecret from map s;
 
@@ -126,7 +126,7 @@ function doRefund(const hashedSecret: bytes; var s: storage) : (list(operation) 
 
 function main (const p: parameter; var s: storage) : (list(operation) * storage) is
 block {
-  if 0tz =/= Tezos.amount then failwith("This contract do not accept tez"); else skip;
+  if 0tz =/= Tezos.amount then failwith("this contract does not accept tez"); else skip;
 } with case p of
   | Initiate(initiate) -> (doInitiate(initiate, s))
   | Add(add) -> (doAdd(add, s))
