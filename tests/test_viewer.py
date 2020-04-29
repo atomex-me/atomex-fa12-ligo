@@ -6,7 +6,7 @@ from pytezos import ContractInterface, pytezos
 project_dir = dirname(dirname(__file__))
 user_address = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
 party_address = 'tz1h3rQ8wBxFd8L9B3d7Jhaawu6Z568XU3xY'
-viewer_address = 'KT1DoLDQS6LmUuHjzcfcKCvtd6nfARE86XrJ'  # Babylonnet (TODO: change in the next season)
+viewer_address = 'KT1Ka8cJ9E4CdWCaH2S5n8WMLpjwwxb4B1uw'  # Carthage (TODO: change in the next season)
 
 
 class FAViewerTest(TestCase):
